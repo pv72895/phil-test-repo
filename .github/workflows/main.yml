@@ -55,5 +55,23 @@ jobs:
 
       - name: Run Tests
         run: ./sleep.sh
-      # - name: Fail on purpose
-      #   run: exit 1
+
+  debugContext:
+    runs-on: ubuntu-latest
+    name: Debug me captain
+
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+  debugContext2:
+    runs-on: ubuntu-latest
+    name: Debug me captain again
+
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
