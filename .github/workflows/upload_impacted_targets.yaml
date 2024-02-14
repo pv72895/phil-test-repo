@@ -17,7 +17,7 @@ jobs:
           lfs: true
 
       - name: Compute Impacted Targets
-        uses: trunk-io/merge-action@1d96b7ab2f165191aa35d4e261a7794963847dd6
+        uses: trunk-io/merge-action@534737a2327b51c87e85d7b5dc16ea7e23791a2b
         with:
           trunk-token: ${{ secrets.TRUNK_ORG_TOKEN }}
           bazel-workspace-path: workspace
