@@ -36,4 +36,6 @@ actions:
 
 merge:
   required_statuses:
-    - Test Status 3
+    - Commit Validation
+    - Important Tests 1
+    - Important Tests 2

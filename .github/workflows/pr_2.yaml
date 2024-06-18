@@ -4,20 +4,20 @@ name: Post Commit
 
 permissions: read-all
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events
-  push:
-    branches:
-      - main
+  pull_request:
+    types:
+      - opened
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
   build:
+    if:  startsWith(github.head_ref, 'trunk-merge/')
+
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    name: Post Commit Validation
+    name: Commit Validation
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
