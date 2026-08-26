@@ -6,3 +6,5 @@ Again.
 
 MORE
 Signed with love (and an ed25519 key). 🔏
+
+Another signed line for a second verified-commit test. ✍️
