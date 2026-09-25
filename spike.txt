@@ -1,0 +1,1 @@
+trunk gha auth e2e (same-repo)
