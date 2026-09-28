@@ -1,0 +1,25 @@
+name: Trunk GitHub Actions auth (pull_request_target, staging)
+
+on: pull_request_target
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      # No checkout: this workflow never runs the pull request's code.
+      - id: login
+        uses: trunk-io/login@main
+        continue-on-error: true
+        with:
+          api-url: https://api.trunk-staging.io/v2
+
+      - name: Report
+        env:
+          OUTCOME: ${{ steps.login.outcome }}
+        run: |
+          echo "login outcome: ${OUTCOME}"
+          trunk auth status || true

@@ -2,7 +2,6 @@ name: Trunk GitHub Actions auth (staging)
 
 on: pull_request
 
-# id-token is what gives a same-repository run its OIDC token; a fork run never gets one.
 permissions:
   contents: read
   id-token: write
@@ -10,31 +9,26 @@ permissions:
 jobs:
   upload:
     runs-on: ubuntu-latest
-    env:
-      TRUNK_API_URL: https://api.trunk-staging.io/v2
-      # The CLI sends this only when the event says the PR comes from a fork.
-      GITHUB_TOKEN: ${{ github.token }}
     steps:
-      - name: Install trunk 0.0.6 (staging channel, pinned)
-        run: |
-          curl -fsSL https://install.trunk.io \
-            | sh -s -- --version 0.0.6 --channel staging --install-dir "$RUNNER_TEMP/trunk"
-          echo "$RUNNER_TEMP/trunk" >> "$GITHUB_PATH"
+      - uses: trunk-io/login@main
+        with:
+          api-url: https://api.trunk-staging.io/v2
 
       - run: trunk --version
-
-      - name: Log in with this run's GitHub credential
-        run: trunk auth login --github-actions
 
       - run: trunk auth status
 
       - name: Upload impacted targets
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           printf '//spike:a\n//spike:b\n' > targets.txt
           trunk mergequeue upload-impacted-targets --targets-file targets.txt --json
 
       # The minted JWT must reach nothing but its own upload. It is masked before any use.
       - name: Containment probes
+        env:
+          TRUNK_API_URL: https://api.trunk-staging.io/v2
         run: |
           creds="${XDG_CONFIG_HOME:-$HOME/.config}/trunk-cli/credentials.json"
           jwt=$(jq -r .githubActions.jwt "$creds")
