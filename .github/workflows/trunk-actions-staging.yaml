@@ -1,0 +1,54 @@
+name: Trunk actions auth (staging)
+
+on: pull_request
+
+jobs:
+  merge-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: trunk-io/merge-action@56f1157c7ee01a5117153f25f04764a0b6201c9d
+        with:
+          auth: github-actions
+          trunk-api-url: https://api.trunk-staging.io/v2
+          bazel-workspace-path: ${{ github.workspace }}/bazel
+          impact-all-filters-path: .github/impact-all.yaml
+          verbose: "true"
+
+  bazel-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: trunk-io/bazel-action@9823f692b9993dd32577349d658c24a0f583dceb
+        with:
+          auth: github-actions
+          trunk-api-url: https://api.trunk-staging.io/v2
+          upload-targets: "true"
+          test-targets: "false"
+          bazel-workspace-path: ${{ github.workspace }}/bazel
+          impact-all-filters-path: .github/impact-all.yaml
+          verbose: "true"
+
+  nx-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: trunk-io/nx-action@45dd3c0237b10b0caf6ce942204cb3918d6afa1f
+        with:
+          auth: github-actions
+          trunk-api-url: https://api.trunk-staging.io/v2
+          workspace-path: nx
+          impact-all-filters-path: .github/impact-all.yaml
+          verbose: "true"
