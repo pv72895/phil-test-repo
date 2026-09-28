@@ -1,0 +1,29 @@
+name: Trunk OIDC event refusal (staging)
+
+on: issue_comment
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  refused:
+    if: >-
+      github.event.issue.pull_request &&
+      github.event.comment.body == '/trunk-oidc-test' &&
+      github.event.comment.user.login == 'pv72895'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Exchange an issue_comment OIDC token (want 422 UNSUPPORTED_EVENT)
+        run: |
+          oidc=$(curl -fsSL -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://api.trunk-staging.io/v2" | jq -r .value)
+          echo "::add-mask::${oidc}"
+          code=$(curl -s -o body.json -w '%{http_code}' -X POST -H 'content-type: application/json' \
+            --data "$(jq -n --arg t "${oidc}" '{oidcToken: $t}')" \
+            https://api.trunk-staging.io/v2/auth/github-actions/login)
+          echo "HTTP ${code}"
+          jq -c '.error' body.json
+          error_code=$(jq -r '.error.code // empty' body.json)
+          rm -f body.json
+          [ "${code}" = 422 ] && [ "${error_code}" = UNSUPPORTED_EVENT ]
