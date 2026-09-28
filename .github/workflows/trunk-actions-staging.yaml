@@ -11,7 +11,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: trunk-io/merge-action@56f1157c7ee01a5117153f25f04764a0b6201c9d
+      - uses: trunk-io/merge-action@0da8908bc1ac50941e18217f429888367ac1be4c
         with:
           auth: github-actions
           trunk-api-url: https://api.trunk-staging.io/v2
@@ -27,7 +27,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: trunk-io/bazel-action@9823f692b9993dd32577349d658c24a0f583dceb
+      - uses: trunk-io/bazel-action@18a780cb57161377df8647bf35346cdd15ad048b
         with:
           auth: github-actions
           trunk-api-url: https://api.trunk-staging.io/v2
@@ -45,7 +45,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: trunk-io/nx-action@45dd3c0237b10b0caf6ce942204cb3918d6afa1f
+      - uses: trunk-io/nx-action@5240f99bb5e86da943b206c6bd2c8bdab2419a7f
         with:
           auth: github-actions
           trunk-api-url: https://api.trunk-staging.io/v2
