@@ -6,3 +6,5 @@ Again.
 
 MORE
 Signed with love (and an ed25519 key). 🔏
+
+trunk actions staging test
