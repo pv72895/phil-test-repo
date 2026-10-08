@@ -1,4 +1,4 @@
 echo "running tests...\n"
 sleep 50s
-echo "Done.\n"
-exit 0
+echo "MQ demo: this PR always fails its required check.\n"
+exit 1
