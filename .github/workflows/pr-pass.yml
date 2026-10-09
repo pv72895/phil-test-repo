@@ -1,0 +1,18 @@
+name: CI Pass
+
+permissions: read-all
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    name: Important Tests 2
+    steps:
+      - name: Run Tests
+        run: |
+          echo "running tests..."
+          sleep 20
+          echo "MQ demo: this check always passes."
