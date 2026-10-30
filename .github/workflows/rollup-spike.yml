@@ -1,0 +1,72 @@
+name: Rollup Spike
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.m.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: m
+        run: echo "mode=$(cat spike-mode.txt)" >> "$GITHUB_OUTPUT"
+  leg:
+    name: Leg ${{ matrix.n }}
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1, 2, 3]
+    steps:
+      - env:
+          MODE: ${{ needs.setup.outputs.mode }}
+          N: ${{ matrix.n }}
+          ATT: ${{ github.run_attempt }}
+        run: |
+          echo "mode=$MODE leg=$N attempt=$ATT"
+          case "$MODE" in
+            fail)  if [ "$N" = 2 ] && [ "$ATT" -le 1 ]; then sleep 15; exit 1; fi; sleep 30 ;;
+            fail2) if [ "$N" = 2 ] && [ "$ATT" -le 2 ]; then sleep 15; exit 1; fi; sleep 30 ;;
+            cancel) if [ "$ATT" -le 1 ]; then if [ "$N" = 1 ]; then sleep 10; exit 1; fi; sleep 150; fi; sleep 20 ;;
+          esac
+  rollup_always:
+    name: Rollup Always
+    needs: [leg]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.leg.result }}" = success ]'
+  rollup_notcancelled:
+    name: Rollup NotCancelled
+    needs: [leg]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.leg.result }}" = success ]'
+  rollup_plain:
+    name: Rollup Plain
+    needs: [leg]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
+  late_dependant:
+    name: Late Dependant
+    needs: [rollup_always]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 90
+  independent:
+    name: Independent
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 5
+  skipped:
+    name: Skipped
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo never
