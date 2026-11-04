@@ -1,0 +1,24 @@
+# Temporary (status re-run spike): posts sr-g-build's outcome as commit statuses on its head SHA.
+name: sr-g-reporter
+on:
+  workflow_run:
+    workflows: [sr-g-build]
+    types: [completed]
+permissions:
+  statuses: write
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          STATE: ${{ github.event.workflow_run.conclusion == 'success' && 'success' || 'failure' }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TRIGGER: ${{ github.event.workflow_run.html_url }}
+          DESC: reporter ${{ github.run_id }}/${{ github.run_attempt }} for build ${{ github.event.workflow_run.id }}/${{ github.event.workflow_run.run_attempt }}
+        run: |
+          sleep 5
+          gh api -X POST "repos/${{ github.repository }}/statuses/$SHA" -f state="$STATE" -f context=spike/G-own -f target_url="$OWN" -f description="$DESC" --jq '{id, state, context, created_at}'
+          gh api -X POST "repos/${{ github.repository }}/statuses/$SHA" -f state="$STATE" -f context=spike/G-trigger -f target_url="$TRIGGER" -f description="$DESC" --jq '{id, state, context, created_at}'
