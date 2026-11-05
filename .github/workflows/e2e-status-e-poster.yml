@@ -1,0 +1,19 @@
+# E2E harness (staging re-run test plan §3.3): status shape E's poster, called from e2e-status.yml.
+name: E2E Status E Poster
+on:
+  workflow_call:
+    inputs:
+      context: {type: string, required: true}
+      state: {type: string, required: true}
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: ${{ inputs.context }}
+          STATE: ${{ inputs.state }}
+        run: |
+          sleep 15
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"

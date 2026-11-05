@@ -1,0 +1,38 @@
+# E2E harness (staging re-run test plan §3.3). Inactive unless this run's control file names "two_b".
+name: E2E Two B
+on:
+  push:
+    branches: ["trunk-merge/**"]
+permissions: {contents: read, statuses: write, checks: write, actions: write, pull-requests: read}
+jobs:
+  e2e-two-b:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - id: gate
+        uses: ./.github/actions/e2e-gate
+        with: {shape: two_b}
+      - env:
+          ACTIVE: ${{ steps.gate.outputs.active }}
+          P: ${{ steps.gate.outputs.params }}
+        run: |
+          [ "${ACTIVE}" = true ] || { echo "inactive: pass"; exit 0; }
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          if fails fail_attempts; then echo "failing attempt ${GITHUB_RUN_ATTEMPT}"; exit 1; fi
+          echo "passing attempt ${GITHUB_RUN_ATTEMPT}"
+  e2e-two-b-sibling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - id: gate
+        uses: ./.github/actions/e2e-gate
+        with: {shape: two_b}
+      - env:
+          ACTIVE: ${{ steps.gate.outputs.active }}
+          P: ${{ steps.gate.outputs.params }}
+        run: |
+          [ "${ACTIVE}" = true ] || { echo "inactive: pass"; exit 0; }
+          s=$(jq -r '.sibling_sleep_s // 0' <<<"${P}")
+          echo "sibling sleeping ${s}s"; sleep "${s}"

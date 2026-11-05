@@ -1,0 +1,225 @@
+# E2E harness (staging re-run test plan §3.3). Inactive unless this run's control file names "status_a..status_e".
+name: E2E Status
+on:
+  push:
+    branches: ["trunk-merge/**"]
+permissions: {contents: read, statuses: write, checks: write, actions: write, pull-requests: read}
+jobs:
+  gate:
+    name: e2e-status-gate
+    runs-on: ubuntu-latest
+    outputs:
+      a: ${{ steps.a.outputs.active }}
+      b: ${{ steps.b.outputs.active }}
+      c: ${{ steps.c.outputs.active }}
+      d: ${{ steps.d.outputs.active }}
+      e: ${{ steps.e.outputs.active }}
+      pa: ${{ steps.a.outputs.params }}
+      pb: ${{ steps.b.outputs.params }}
+      pc: ${{ steps.c.outputs.params }}
+      pd: ${{ steps.d.outputs.params }}
+      pe: ${{ steps.e.outputs.params }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - id: a
+        uses: ./.github/actions/e2e-gate
+        with: {shape: status_a}
+      - id: b
+        uses: ./.github/actions/e2e-gate
+        with: {shape: status_b}
+      - id: c
+        uses: ./.github/actions/e2e-gate
+        with: {shape: status_c}
+      - id: d
+        uses: ./.github/actions/e2e-gate
+        with: {shape: status_d}
+      - id: e
+        uses: ./.github/actions/e2e-gate
+        with: {shape: status_e}
+  # Inactive: posts success for every context whose shape is not active.
+  e2e-status-pass:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ACT: a=${{ needs.gate.outputs.a }} b=${{ needs.gate.outputs.b }} c=${{ needs.gate.outputs.c }} d=${{ needs.gate.outputs.d }} e=${{ needs.gate.outputs.e }}
+          STATE: success
+        run: |
+          for kv in ${ACT}; do
+            [ "${kv#*=}" = true ] && continue
+            CTX="e2e/status-${kv%%=*}"
+            gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+          done
+  a_inprogress:
+    needs: gate
+    if: needs.gate.outputs.a == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-a
+          STATE: pending
+        run: |
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  a_build:
+    needs: [gate, a_inprogress]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          P: ${{ needs.gate.outputs.pa }}
+        run: |
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          sleep 10; echo "attempt ${GITHUB_RUN_ATTEMPT}"
+          if fails fail_attempts; then exit 1; fi
+  a_report:
+    needs: [gate, a_build]
+    if: always() && needs.gate.outputs.a == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-a
+          STATE: ${{ needs.a_build.result == 'success' && 'success' || 'failure' }}
+        run: |
+          sleep 15
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  b_inprogress:
+    needs: gate
+    if: needs.gate.outputs.b == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-b
+          STATE: pending
+        run: |
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  b_build:
+    needs: [gate, b_inprogress]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          P: ${{ needs.gate.outputs.pb }}
+        run: |
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          sleep 10; echo "attempt ${GITHUB_RUN_ATTEMPT}"
+          if fails fail_attempts; then exit 1; fi
+  b_report:
+    needs: [gate, b_inprogress]
+    if: always() && needs.gate.outputs.b == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-b
+          P: ${{ needs.gate.outputs.pb }}
+        run: |
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          sleep 15
+          if fails fail_attempts; then STATE=failure; else STATE=success; fi
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  c_inprogress:
+    needs: gate
+    if: needs.gate.outputs.c == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-c
+          STATE: pending
+        run: |
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  c_build:
+    needs: [gate, c_inprogress]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          P: ${{ needs.gate.outputs.pc }}
+        run: |
+          sleep 10; echo "attempt ${GITHUB_RUN_ATTEMPT}: shape C build always passes"
+  c_report:
+    needs: [gate, c_build]
+    if: always() && needs.gate.outputs.c == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-c
+          STATE: ${{ 'failure' }}
+        run: |
+          sleep 15
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  d_inprogress:
+    needs: gate
+    if: needs.gate.outputs.d == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-d
+          STATE: pending
+        run: |
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  d_build:
+    needs: [gate, d_inprogress]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          P: ${{ needs.gate.outputs.pd }}
+        run: |
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          sleep 10; echo "attempt ${GITHUB_RUN_ATTEMPT}"
+          if fails fail_attempts; then exit 1; fi
+  d_report:
+    needs: [gate, d_build]
+    if: always() && needs.gate.outputs.d == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-d
+          STATE: ${{ needs.d_build.result == 'success' && 'success' || 'failure' }}
+        run: |
+          sleep 15
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+          [ "${STATE}" = success ]
+  e_inprogress:
+    needs: gate
+    if: needs.gate.outputs.e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          OWN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CTX: e2e/status-e
+          STATE: pending
+        run: |
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+  e_build:
+    needs: [gate, e_inprogress]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          P: ${{ needs.gate.outputs.pe }}
+        run: |
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          sleep 10; echo "attempt ${GITHUB_RUN_ATTEMPT}"
+          if fails fail_attempts; then exit 1; fi
+  e_report:
+    needs: [gate, e_build]
+    if: always() && needs.gate.outputs.e == 'true'
+    uses: ./.github/workflows/e2e-status-e-poster.yml
+    with:
+      context: e2e/status-e
+      state: ${{ needs.e_build.result == 'success' && 'success' || 'failure' }}
