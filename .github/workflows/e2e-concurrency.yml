@@ -1,0 +1,51 @@
+# E2E harness (staging re-run test plan §3.3). Inactive unless this run's control file names "conc".
+# One concurrency group per test branch, so overlapping runs never cancel each other. The dispatch
+# form is the hog: it holds the group named by its input for hog_min minutes.
+name: E2E Concurrency
+on:
+  push:
+    branches: ["trunk-merge/**"]
+  workflow_dispatch:
+    inputs:
+      hog_min: {description: minutes to hold the group, required: true, default: "30"}
+      group: {description: the concurrency group to hold, required: true}
+permissions: {contents: read, statuses: write, checks: write, actions: write, pull-requests: read}
+concurrency:
+  group: ${{ inputs.group || format('e2e-conc-{0}', github.ref_name) }}
+  cancel-in-progress: false
+jobs:
+  gate:
+    name: e2e-conc-gate
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      active: ${{ steps.gate.outputs.active }}
+      params: ${{ steps.gate.outputs.params }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - id: gate
+        uses: ./.github/actions/e2e-gate
+        with: {shape: conc}
+  e2e-conc:
+    needs: gate
+    if: github.event_name == 'push'
+    runs-on: ${{ fromJSON(needs.gate.outputs.params).runs_on_attempt[format('{0}', github.run_attempt)] || 'ubuntu-latest' }}
+    steps:
+      - env:
+          ACTIVE: ${{ needs.gate.outputs.active }}
+          P: ${{ needs.gate.outputs.params }}
+        run: |
+          [ "${ACTIVE}" = true ] || { echo "inactive: pass"; exit 0; }
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          if fails fail_attempts; then echo "failing attempt ${GITHUB_RUN_ATTEMPT}"; exit 1; fi
+          echo "passing attempt ${GITHUB_RUN_ATTEMPT}"
+  hog:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - env:
+          MIN: ${{ inputs.hog_min }}
+          GROUP: ${{ inputs.group }}
+        run: echo "holding ${GROUP} for ${MIN} minutes"; sleep $(( MIN * 60 ))
