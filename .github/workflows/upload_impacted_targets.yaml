@@ -2,8 +2,11 @@ name: Upload Impacted Targets
 run-name: Upload Impacted Targets for ${{ github.ref_name }}
 on: pull_request
 
+# id-token: write mints the OIDC token the v2 upload logs in with (no Trunk secret).
 permissions:
   contents: read
+  pull-requests: read
+  id-token: write
 
 jobs:
   compute_impacted_targets:
@@ -12,15 +15,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
 
       - name: Compute Impacted Targets
         uses: trunk-io/merge-action@main
         with:
-          trunk-token: ${{ secrets.TRUNK_ORG_TOKEN }}
+          auth: github-actions
+          trunk-api-url: https://api.trunk-staging.io/v2
           bazel-workspace-path: workspace
           verbose: 1
-        env:
-          API_URL: https://api.trunk-staging.io:443/v1/setImpactedTargets
