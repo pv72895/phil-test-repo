@@ -21,9 +21,10 @@ jobs:
           CTX: e2e/status-f
           STATE: success
         run: |
+          ghr() { local i; for i in 1 2 3 4 5; do gh "$@" && return 0; echo "gh $1 failed (try ${i}), retrying" >&2; sleep $((i * 5)); done; return 1; }
           if [ "${ACTIVE}" = true ]; then
-            gh workflow run e2e-status-f-poster.yml --ref main -f target_sha="${GITHUB_SHA}"
+            ghr workflow run e2e-status-f-poster.yml --ref main -f target_sha="${GITHUB_SHA}"
             echo "dispatched e2e-status-f-poster.yml for ${GITHUB_SHA}"
           else
-            gh api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
+            ghr api -X POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -f state="${STATE}" -f context="${CTX}" -f target_url="${OWN}" -f description="attempt ${GITHUB_RUN_ATTEMPT} job ${GITHUB_JOB}" --jq "{id, state, context, target_url, created_at, updated_at}"
           fi
