@@ -24,3 +24,6 @@ Control file: {"<shape>": {<params>}, ...}. "fail_attempts" defaults to [1] wher
   dis        {fail_attempts}
   hang       {}  sleeps 50 minutes
 Release a blocker: create refs/heads/e2e-release/pr-<N> (or ...-fail) at any commit.
+Every status, check-run and dispatch call goes through ghr, which retries a failed gh call up to 5 times
+(GitHub sometimes answers a status POST with an empty body and stores nothing). A retry after a lost
+response can post a duplicate with the same state.

@@ -21,13 +21,14 @@ jobs:
           TRIGGER: ${{ github.event.workflow_run.html_url }}
           DESC: reporter ${{ github.run_id }}/${{ github.run_attempt }} for build ${{ github.event.workflow_run.id }}/${{ github.event.workflow_run.run_attempt }}
         run: |
+          ghr() { local i; for i in 1 2 3 4 5; do gh "$@" && return 0; echo "gh $1 failed (try ${i}), retrying" >&2; sleep $((i * 5)); done; return 1; }
           pr=$(sed -nE 's#^trunk-merge/pr-([0-9]+)/.*#\1#p' <<<"${BRANCH}")
-          p1=$(gh api "repos/${R}/commits/${SHA}" --jq '.parents[0].sha')
-          files=$(gh api "repos/${R}/compare/${p1}...${SHA}" --jq '.files[]? | select(.status != "removed") | .filename | select(startswith("e2e/active/"))')
+          p1=$(ghr api "repos/${R}/commits/${SHA}" --jq '.parents[0].sha')
+          files=$(ghr api "repos/${R}/compare/${p1}...${SHA}" --jq '.files[]? | select(.status != "removed") | .filename | select(startswith("e2e/active/"))')
           echo "build ${SHA} (${BRANCH}), first parent ${p1}; control files: ${files:-<none>}"
           params=null
           for f in ${files}; do
-            c=$(gh api "repos/${R}/contents/${f}?ref=${SHA}" --jq .content | base64 -d) || continue
+            c=$(ghr api "repos/${R}/contents/${f}?ref=${SHA}" --jq .content | base64 -d) || continue
             fpr=$(jq -r '.pr // empty' <<<"${c}")
             if [ -n "${fpr}" ] && [ "${fpr}" != "${pr}" ]; then echo "ignoring ${f}: pr ${fpr} != ${pr}"; continue; fi
             p=$(jq -c '.g_build // null' <<<"${c}")
@@ -36,5 +37,5 @@ jobs:
           delay=5
           if [ "${params}" != null ]; then delay=$(jq -r '.report_delay_s // 5' <<<"${params}"); fi
           echo "g_build params ${params}; sleeping ${delay}s"; sleep "${delay}"
-          gh api -X POST "repos/${R}/statuses/${SHA}" -f state="${STATE}" -f context=e2e/g-own -f target_url="${OWN}" -f description="${DESC}" --jq '{id, state, context, target_url, created_at}'
-          gh api -X POST "repos/${R}/statuses/${SHA}" -f state="${STATE}" -f context=e2e/g-trigger -f target_url="${TRIGGER}" -f description="${DESC}" --jq '{id, state, context, target_url, created_at}'
+          ghr api -X POST "repos/${R}/statuses/${SHA}" -f state="${STATE}" -f context=e2e/g-own -f target_url="${OWN}" -f description="${DESC}" --jq '{id, state, context, target_url, created_at}'
+          ghr api -X POST "repos/${R}/statuses/${SHA}" -f state="${STATE}" -f context=e2e/g-trigger -f target_url="${TRIGGER}" -f description="${DESC}" --jq '{id, state, context, target_url, created_at}'

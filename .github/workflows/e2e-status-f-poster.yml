@@ -16,7 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          gh api -X POST repos/${{ github.repository }}/statuses/$TARGET -f state=pending -f context=$CTX -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -f description="attempt ${{ github.run_attempt }} job ${{ github.job }} event ${{ github.event_name }}" --jq "{id, state, context, target_url, created_at}"
+          ghr() { local i; for i in 1 2 3 4 5; do gh "$@" && return 0; echo "gh $1 failed (try ${i}), retrying" >&2; sleep $((i * 5)); done; return 1; }
+          ghr api -X POST repos/${{ github.repository }}/statuses/$TARGET -f state=pending -f context=$CTX -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -f description="attempt ${{ github.run_attempt }} job ${{ github.job }} event ${{ github.event_name }}" --jq "{id, state, context, target_url, created_at}"
   build:
     needs: inprogress
     runs-on: ubuntu-latest
@@ -29,4 +30,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          sleep 15; STATE=${{ needs.build.result == 'success' && 'success' || 'failure' }}; gh api -X POST repos/${{ github.repository }}/statuses/$TARGET -f state=$STATE -f context=$CTX -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -f description="attempt ${{ github.run_attempt }} job ${{ github.job }} event ${{ github.event_name }}" --jq "{id, state, context, target_url, created_at}"
+          ghr() { local i; for i in 1 2 3 4 5; do gh "$@" && return 0; echo "gh $1 failed (try ${i}), retrying" >&2; sleep $((i * 5)); done; return 1; }
+          sleep 15; STATE=${{ needs.build.result == 'success' && 'success' || 'failure' }}; ghr api -X POST repos/${{ github.repository }}/statuses/$TARGET -f state=$STATE -f context=$CTX -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" -f description="attempt ${{ github.run_attempt }} job ${{ github.job }} event ${{ github.event_name }}" --jq "{id, state, context, target_url, created_at}"
