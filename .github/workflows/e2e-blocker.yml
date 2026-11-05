@@ -31,6 +31,6 @@ jobs:
                 "refs/heads/e2e-release/pr-${n}-fail") echo "released to fail by ${r} at $(date -u +%FT%TZ)"; exit 1 ;;
               esac
             done
-            sleep 10
+            sleep 60
           done
           echo "max_min ${max} passed without a release: pass"
