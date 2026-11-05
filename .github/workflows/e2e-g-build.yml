@@ -1,0 +1,23 @@
+# E2E harness (staging re-run test plan §3.3). Inactive unless this run's control file names "g_build".
+name: E2E G Build
+on:
+  push:
+    branches: ["trunk-merge/**"]
+permissions: {contents: read, statuses: write, checks: write, actions: write, pull-requests: read}
+jobs:
+  e2e-g-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - id: gate
+        uses: ./.github/actions/e2e-gate
+        with: {shape: g_build}
+      - env:
+          ACTIVE: ${{ steps.gate.outputs.active }}
+          P: ${{ steps.gate.outputs.params }}
+        run: |
+          sleep 10; echo "attempt ${GITHUB_RUN_ATTEMPT}"
+          [ "${ACTIVE}" = true ] || { echo "inactive: pass"; exit 0; }
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          if fails fail_attempts; then exit 1; fi

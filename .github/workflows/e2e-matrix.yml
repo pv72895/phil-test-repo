@@ -1,0 +1,36 @@
+# E2E harness (staging re-run test plan §3.3). Inactive unless this run's control file names "matrix".
+name: E2E Matrix
+on:
+  push:
+    branches: ["trunk-merge/**"]
+permissions: {contents: read, statuses: write, checks: write, actions: write, pull-requests: read}
+jobs:
+  leg:
+    name: e2e-leg-${{ matrix.n }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        n: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - id: gate
+        uses: ./.github/actions/e2e-gate
+        with: {shape: matrix}
+      - env:
+          ACTIVE: ${{ steps.gate.outputs.active }}
+          P: ${{ steps.gate.outputs.params }}
+          N: ${{ matrix.n }}
+        run: |
+          [ "${ACTIVE}" = true ] || { echo "inactive: pass"; exit 0; }
+          fails() { jq -e --argjson a "${GITHUB_RUN_ATTEMPT}" "(.${1:-fail_attempts} // ${2:-[1]}) | any(.[]; . == \$a)" <<<"${P}" >/dev/null; }
+          sleep 5
+          if [ "${N}" = 2 ] && fails fail_attempts; then echo "leg 2 failing attempt ${GITHUB_RUN_ATTEMPT}"; exit 1; fi
+          echo "leg ${N} passing attempt ${GITHUB_RUN_ATTEMPT}"
+  e2e-rollup:
+    needs: leg
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: '[ "${{ needs.leg.result }}" = success ]'

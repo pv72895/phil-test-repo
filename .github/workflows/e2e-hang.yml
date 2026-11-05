@@ -1,0 +1,21 @@
+# E2E harness (staging re-run test plan §3.3). Inactive unless this run's control file names "hang".
+name: E2E Hang
+on:
+  push:
+    branches: ["trunk-merge/**"]
+permissions: {contents: read, statuses: write, checks: write, actions: write, pull-requests: read}
+jobs:
+  e2e-hang:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - id: gate
+        uses: ./.github/actions/e2e-gate
+        with: {shape: hang}
+      - env:
+          ACTIVE: ${{ steps.gate.outputs.active }}
+        run: |
+          [ "${ACTIVE}" = true ] || { echo "inactive: pass"; exit 0; }
+          echo "hanging 50 minutes"; sleep 3000
