@@ -1,9 +1,0 @@
-# E2E harness (staging re-run test plan §3.3). Inactive unless this run's control file names "reusable".
-name: E2E Reusable Caller
-on:
-  push:
-    branches: ["trunk-merge/**"]
-permissions: {contents: read, statuses: write, checks: write, actions: write, pull-requests: read}
-jobs:
-  e2e-call:
-    uses: ./.github/workflows/e2e-reusable.yml
