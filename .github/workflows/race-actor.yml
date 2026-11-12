@@ -7,7 +7,7 @@ permissions:
   pull-requests: read
 jobs:
   required:
-    name: Important Tests 1
+    name: race-required
     runs-on: ubuntu-latest
     steps:
       - env:
@@ -36,11 +36,14 @@ jobs:
           R: ${{ github.repository }}
           REF: ${{ github.ref_name }}
           ATTEMPT: ${{ github.run_attempt }}
+          RUN: ${{ github.run_id }}
         run: |
           N=$(echo "$REF" | sed -nE 's#^trunk-merge/pr-([0-9]+)/.*#\1#p')
           HEAD=$(gh api "repos/$R/pulls/$N" --jq .head.ref)
           echo "pr=$N head=$HEAD attempt=$ATTEMPT"
-          case "$HEAD" in race-target*) [ "$ATTEMPT" = 1 ] && { echo "fail on attempt 1"; exit 1; } ;; esac
+          case "$HEAD" in race-target*) [ "$ATTEMPT" = 1 ] || exit 0
+            until gh api "repos/$R/git/ref/heads/race-release/run-$RUN" >/dev/null 2>&1; do [ $SECONDS -gt 900 ] && break; sleep 0.2; done
+            echo "released; fail on attempt 1"; exit 1 ;; esac
           exit 0
   pass:
     name: race-pass
