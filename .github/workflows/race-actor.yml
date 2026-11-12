@@ -7,7 +7,7 @@ permissions:
   pull-requests: read
 jobs:
   required:
-    name: Important Tests 1
+    name: race-required
     runs-on: ubuntu-latest
     steps:
       - env:
