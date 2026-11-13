@@ -1,0 +1,51 @@
+name: bc
+on:
+  push:
+    branches: ["trunk-merge/**"]
+permissions: read-all
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      hang: ${{ steps.f.outputs.hang }}
+      fail_after: ${{ steps.f.outputs.fail_after }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: f
+        run: |
+          if compgen -G "bc/hang/*" >/dev/null; then echo "hang=true"; else echo "hang=false"; fi >> "$GITHUB_OUTPUT"
+          if compgen -G "bc/broken/*" >/dev/null; then echo "fail_after=$(cat bc/broken/* | sort -n | head -1)"; else echo "fail_after="; fi >> "$GITHUB_OUTPUT"
+  build:
+    name: bc-build
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ -n "${{ needs.detect.outputs.fail_after }}" ]; then sleep "${{ needs.detect.outputs.fail_after }}"; exit 1; fi
+          sleep 5
+  queued:
+    name: bc-queued
+    needs: detect
+    runs-on: ${{ needs.detect.outputs.hang == 'true' && 'bc-no-such-runner' || 'ubuntu-latest' }}
+    steps:
+      - run: sleep 5
+  approval:
+    name: bc-approval
+    needs: detect
+    runs-on: ubuntu-latest
+    environment: ${{ needs.detect.outputs.hang == 'true' && 'bc-approval' || 'bc-open' }}
+    steps:
+      - run: sleep 5
+  progress:
+    name: bc-progress
+    needs: detect
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - run: if [ "${{ needs.detect.outputs.hang }}" = "true" ]; then sleep 1800; else sleep 5; fi
+  after:
+    name: bc-after
+    needs: progress
+    runs-on: ubuntu-latest
+    steps:
+      - run: sleep 5
