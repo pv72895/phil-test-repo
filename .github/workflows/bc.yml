@@ -9,12 +9,14 @@ jobs:
     outputs:
       hang: ${{ steps.f.outputs.hang }}
       fail_after: ${{ steps.f.outputs.fail_after }}
+      pass_after: ${{ steps.f.outputs.pass_after }}
     steps:
       - uses: actions/checkout@v4
       - id: f
         run: |
           if compgen -G "bc/hang/*" >/dev/null; then echo "hang=true"; else echo "hang=false"; fi >> "$GITHUB_OUTPUT"
           if compgen -G "bc/broken/*" >/dev/null; then echo "fail_after=$(cat bc/broken/* | sort -n | head -1)"; else echo "fail_after="; fi >> "$GITHUB_OUTPUT"
+          if compgen -G "bc/slow/*" >/dev/null; then echo "pass_after=$(cat bc/slow/* | sort -n | tail -1)"; else echo "pass_after=5"; fi >> "$GITHUB_OUTPUT"
   build:
     name: bc-build
     needs: detect
@@ -22,7 +24,7 @@ jobs:
     steps:
       - run: |
           if [ -n "${{ needs.detect.outputs.fail_after }}" ]; then sleep "${{ needs.detect.outputs.fail_after }}"; exit 1; fi
-          sleep 5
+          sleep "${{ needs.detect.outputs.pass_after }}"
   queued:
     name: bc-queued
     needs: detect
