@@ -1,0 +1,31 @@
+# Auto re-run E2E harness: the head-of-queue blocker. Released by refs/heads/ar-release/pr-<n>[-fail].
+name: AR Blocker
+on: { push: { branches: ['trunk-merge/**'] } }
+permissions: { contents: read }
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs: { active: "${{ steps.g.outputs.active }}", json: "${{ steps.g.outputs.json }}" }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - { id: g, uses: ./.github/actions/ar-gate }
+  ar-blocker:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          m=$(jq -r '.blocker_max_min // empty' <<<"$J"); [ -z "$m" ] && { echo inactive; exit 0; }
+          n=$(sed -nE 's#^trunk-merge/pr-([0-9]+)/.*#\1#p' <<<"$GITHUB_REF_NAME"); end=$(( $(date +%s) + m*60 ))
+          echo "waiting up to $m min for ar-release/pr-$n[-fail]"
+          while [ "$(date +%s)" -lt "$end" ]; do
+            for r in $(gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/heads/ar-release/pr-$n" --jq '.[].ref'); do
+              case "$r" in
+                "refs/heads/ar-release/pr-$n") echo "released $(date -u +%FT%TZ)"; exit 0 ;;
+                "refs/heads/ar-release/pr-$n-fail") echo "released to fail $(date -u +%FT%TZ)"; exit 1 ;;
+              esac
+            done
+            sleep 10
+          done
+          echo "no release in $m min"; exit 1
+        env: { J: "${{ needs.gate.outputs.json }}", ACTIVE: "${{ needs.gate.outputs.active }}", GH_TOKEN: "${{ github.token }}" }
