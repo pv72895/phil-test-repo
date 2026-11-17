@@ -1,1 +1,0 @@
-{"required_fail_attempts":[1,2],"required_sleep_s":{"1":45,"2":45},"fail_attempts":[1,2],"slow_s":150}
