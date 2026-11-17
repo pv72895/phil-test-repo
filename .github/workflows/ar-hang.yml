@@ -1,0 +1,18 @@
+# Auto re-run E2E harness: a required job that sleeps hang_min minutes (testing timeout cases).
+name: AR Hang
+on: { push: { branches: ['trunk-merge/**'] } }
+permissions: { contents: read }
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs: { active: "${{ steps.g.outputs.active }}", json: "${{ steps.g.outputs.json }}" }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - { id: g, uses: ./.github/actions/ar-gate }
+  ar-hang:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - run: m=$(jq -r '.hang_min // 0' <<<"$J"); echo "hang $m min"; sleep $((m*60))
+        env: { J: "${{ needs.gate.outputs.json }}", ACTIVE: "${{ needs.gate.outputs.active }}", GH_TOKEN: "${{ github.token }}" }
