@@ -1,2 +1,2 @@
 def shout(s: str) -> str:
-    return s.upper()
+    return s.upper() + "!"
