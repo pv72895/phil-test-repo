@@ -1,0 +1,10 @@
+name: rr
+on:
+  push:
+    branches: ["trunk-merge/**"]
+jobs:
+  rr-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: if compgen -G "rr/broken/*" >/dev/null; then sleep 90; exit 1; else sleep 240; fi
