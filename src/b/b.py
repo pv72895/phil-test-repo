@@ -1,2 +1,5 @@
+from a.a import helper
+
+
 def greet() -> str:
-    return "hi"
+    return f"hi {helper()}"
