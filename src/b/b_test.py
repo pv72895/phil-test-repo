@@ -2,4 +2,4 @@ from b.b import greet
 
 
 def test_greet() -> None:
-    assert greet() == "hi"
+    assert greet() == "hello"
