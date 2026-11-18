@@ -1,4 +1,4 @@
-from lab.x import value
+from x.x import value
 
 
 def x() -> int:

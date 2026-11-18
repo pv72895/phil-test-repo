@@ -1,4 +1,4 @@
-from lab.d import shout
+from d.d import shout
 
 
 def test_shout() -> None:

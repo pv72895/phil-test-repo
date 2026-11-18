@@ -1,4 +1,4 @@
-from lab.a import helper
+from a.a import helper
 
 
 def test_helper() -> None:

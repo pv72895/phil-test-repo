@@ -1,4 +1,4 @@
-from lab.b import greet
+from b.b import greet
 
 
 def test_greet() -> None:
