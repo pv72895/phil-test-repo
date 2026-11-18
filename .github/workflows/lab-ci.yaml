@@ -1,0 +1,22 @@
+name: Lab CI
+on:
+  pull_request:
+    branches: [pants-lab]
+  push:
+    branches: ["trunk-merge/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  lab-tests:
+    name: lab-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Pants
+        run: curl --proto '=https' -fsSL https://static.pantsbuild.org/setup/get-pants.sh | bash -s -- -d "$HOME/bin" && echo "$HOME/bin" >>"$GITHUB_PATH"
+      - run: pants test ::

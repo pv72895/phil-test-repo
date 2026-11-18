@@ -1,0 +1,5 @@
+from lab.d import shout
+
+
+def test_shout() -> None:
+    assert shout("a") == "A"

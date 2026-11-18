@@ -1,0 +1,37 @@
+name: Lab impacted targets
+on:
+  pull_request:
+    branches: [pants-lab]
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Pants
+        run: curl --proto '=https' -fsSL https://static.pantsbuild.org/setup/get-pants.sh | bash -s -- -d "$HOME/bin" && echo "$HOME/bin" >>"$GITHUB_PATH"
+      - name: Compute impacted targets
+        run: |
+          base=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+          echo "merge base: $base"
+          .lab/compute_targets.sh "$base" targets.txt
+          echo "--- uploading"
+          cat targets.txt
+      - uses: trunk-io/login@main
+        with:
+          api-url: https://api.trunk-staging.io/v2
+      - name: Upload impacted targets
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: trunk mergequeue upload-impacted-targets --targets-file targets.txt --json
