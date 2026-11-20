@@ -27,8 +27,8 @@ line 26 of R
 line 27 of R
 line 28 of R
 line 29 of R
-line 30 of R
-line 31 of R
+line 30 REWRITTEN
+line 31 REWRITTEN
 line 32 of R
 line 33 of R
 line 34 of R
