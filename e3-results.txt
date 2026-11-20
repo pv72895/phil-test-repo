@@ -1,0 +1,1 @@
+rename-vs-edit: predicted=CONFLICT landed=REFUSED-CONFLICT => DIFF
